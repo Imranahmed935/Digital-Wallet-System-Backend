@@ -1,28 +1,29 @@
 import { NextFunction, Request, Response } from "express";
-import AppError from "../errorHelpers/AppError";
-import { verifyToken } from "../utils/jwt";
 import { envVars } from "../config/env";
+import AppError from "../errorHelpers/AppError";
 import { User } from "../modules/user/user.model";
-
-
-
+import { verifyToken } from "../utils/jwt";
 
 export const checkAuth =
   (...authRoles: string[]) =>
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const token = req.headers.authorization;
-      if (!token) {
+      const authHeader = req.headers.authorization;
+      if (!authHeader) {
         throw new AppError(403, "No token provided");
       }
 
+      const token = authHeader.startsWith("Bearer ")
+        ? authHeader.split(" ")[1]
+        : authHeader;
+
       const verifiedToken = verifyToken(token, envVars.JWT_SECRET) as {
-        id: string;
+        userId: string;
         email: string;
         role: string;
       };
 
-      const existUser = await User.findById(verifiedToken.id);
+      const existUser = await User.findById(verifiedToken.userId);
       if (!existUser) {
         throw new AppError(404, "User does not exist!");
       }

@@ -1,10 +1,10 @@
 import { model, Schema } from "mongoose";
-import { IUser, Role } from "./user.interface";
+import { IUser, Role} from "./user.interface";
 
 const userSchema = new Schema<IUser>(
   {
     name: { type: String, required: true },
-    phone:{type:String},
+    phone: { type: String },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: false },
     role: {
@@ -12,6 +12,7 @@ const userSchema = new Schema<IUser>(
       enum: Object.values(Role),
       default: Role.USER,
     },
+    isActive: {type:Boolean, default:false}
   },
   {
     timestamps: true,

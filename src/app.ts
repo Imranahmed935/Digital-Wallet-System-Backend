@@ -5,6 +5,7 @@ import { authRouter } from "./App/modules/auth/auth.routes";
 import notFound from "./App/midleware/notFound";
 import { walletRouter } from "./App/modules/wallet/wallet.routes";
 import { agentRouter } from "./App/modules/agent/agent.route";
+import { adminRouter } from "./App/modules/admin/admin.route";
 
 
 const app = express();
@@ -16,6 +17,7 @@ app.use("/api/v1", userRouter);
 app.use("/api/v1", authRouter);
 app.use("/api/v1", walletRouter);
 app.use("/api/v1", agentRouter);
+app.use("/api/v1", adminRouter);
 
 app.get("/", (req: Request, res: Response) => {
   res.status(200).json({

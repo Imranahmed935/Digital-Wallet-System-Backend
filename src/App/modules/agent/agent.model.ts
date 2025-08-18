@@ -5,6 +5,7 @@ const agentSchema = new Schema<IAgent>(
   {
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     name: { type: String, required: true },
+    role:{type:String, required:true},
     email: { type: String, required: true, unique: true },
     commissionRate: { type: Number, default: 2 }, 
     isActive: { type: Boolean, default: true },

@@ -22,11 +22,5 @@ export const UserZodSchema = z.object({
         .refine(val => Object.values(Role).includes(val as Role), {
           message: `Role must be one of: ${Object.values(Role).join(", ")}`,
         }),
-  phone: z
-    .string()
-    .regex(/^(?:\+88|88)?01[3-9]\d{8}$/, {
-      message: "Invalid Bangladeshi phone number",
-    })
-    
 
 });
