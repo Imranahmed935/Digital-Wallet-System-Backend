@@ -1,59 +1,45 @@
-# Digital Wallet System
+# Digital Wallet API
 
-A full-featured **Digital Wallet System** backend built with **Node.js, Express, MongoDB (Mongoose)**.  
-This system supports users, agents, wallets, transactions, and admin functionalities including wallet management, agent approval, and system parameter configuration.
-
----
-
-## **Table of Contents**
-
-- [Features](#features)  
-- [Technologies](#technologies)  
-- [Project Structure](#project-structure)  
-- [Installation](#installation)  
-- [Environment Variables](#environment-variables)  
-- [API Endpoints](#api-endpoints)  
-- [Admin Functionalities](#admin-functionalities)  
+A **secure digital wallet system** with multi-role access, transaction tracking, and wallet management. Built using **Node.js, Express, MongoDB, and Mongoose**.
 
 ---
 
-## **Features**
+## **Minimum Functional Requirements**
 
-- **User Management**  
-  - Register users and agents  
-  - Automatic wallet creation upon registration  
-  - Password hashing for security  
+### **Authentication & Security**
+- ✅ JWT-based login system with three roles: `admin`, `user`, `agent`.  
+- ✅ Secure password hashing using `bcryptjs`.  
+- ✅ Role-based route protection for secure endpoints.  
 
-- **Wallet Management**  
-  - Add money  
-  - Block/unblock wallets  
-  - Dynamic fees based on system parameters  
+### **Wallet & Transactions**
+- ✅ Automatic wallet creation for each user and agent upon registration with an **initial balance of ৳50**.  
+- ✅ All transactions are stored and fully trackable.  
 
-- **Transactions**  
-  - Deposit, transfer, and withdrawal operations  
-  - Transaction history tracking  
+### **User Functionalities**
+- ✅ Add money (top-up).  
+- ✅ Withdraw money.  
+- ✅ Send money to another user.  
+- ✅ View transaction history.  
 
-- **Admin Functionalities**  
-  - View all users, agents, wallets, and transactions  
-  - Approve/suspend agents  
-  - Block/unblock wallets  
-  - Set and update system parameters (transaction fees, limits, minimum balance)  
+### **Agent Functionalities**
+- ✅ Add money to any user's wallet (cash-in).  
+- ✅ Withdraw money from any user's wallet (cash-out).  
+- ✅ View their commission history.  
 
-- **Security**  
-  - JWT-based authentication  
-  - Role-based access control  
+### **Admin Functionalities**
+- ✅ View all users, agents, wallets, and transactions.  
+- ✅ Block/unblock user wallets.  
+- ✅ Approve/suspend agents.  
+- ✅ Set system parameters (e.g., transaction fees).  
 
 ---
 
-## **Technologies**
-
+## **Technologies Used**
 - **Backend:** Node.js, Express  
 - **Database:** MongoDB, Mongoose  
 - **Authentication:** JWT  
 - **Password Hashing:** bcryptjs  
-- **Validation & Error Handling:** Custom AppError class  
+- **Validation & Error Handling:** Custom AppError  
 
----
 
-## **Project Structure**
 
