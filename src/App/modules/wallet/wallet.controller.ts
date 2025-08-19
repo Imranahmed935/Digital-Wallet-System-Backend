@@ -2,10 +2,10 @@ import { Request, Response } from "express";
 import mongoose from "mongoose";
 
 
-
 import Transaction from "../transaction/tx.model";
 import { Wallet } from "./wallet.model";
 import AppError from "../../errorHelpers/AppError";
+import { envVars } from "../../config/env";
 
 // Add Money (Top-up)
 export const addMoney = async (req: Request, res: Response) => {
@@ -61,8 +61,11 @@ export const withdrawMoney = async (req: Request, res: Response) => {
     const wallet = await Wallet.findOne({ userId }).session(session);
     if (!wallet) throw new AppError(404, "Wallet not found");
     if (wallet.balance < amount) throw new AppError(400, "Insufficient balance");
+ 
+    const transactionFee = Number(envVars.TRANSACTION_FEE);
+    const newFee = (transactionFee / 100) * amount;
 
-    wallet.balance -= amount;
+    wallet.balance -= (amount + newFee);
     await wallet.save({ session });
 
     await Transaction.create(
@@ -70,7 +73,7 @@ export const withdrawMoney = async (req: Request, res: Response) => {
         {
           type: "WITHDRAW",
           amount,
-          fee: 0,
+          fee: newFee,
           commission: 0,
           fromWallet: wallet._id,
           initiatedBy: userId,
@@ -108,8 +111,11 @@ export const sendMoney = async (req: Request, res: Response) => {
     if (!senderWallet || !receiverWallet) throw new AppError(404, "Wallet not found");
     if (senderWallet.balance < amount) throw new AppError(400, "Insufficient balance");
 
+    const transactionFee = Number(envVars.TRANSACTION_FEE);
+    const newFee = (transactionFee / 100) * amount;
+
     // Deduct from sender
-    senderWallet.balance -= amount;
+    senderWallet.balance -= (amount + newFee);
     await senderWallet.save({ session });
 
     // Add to receiver
@@ -122,7 +128,7 @@ export const sendMoney = async (req: Request, res: Response) => {
         {
           type: "TRANSFER",
           amount,
-          fee: 0,
+          fee: newFee,
           commission: 0,
           fromWallet: senderWallet._id,
           toWallet: receiverWallet._id,
