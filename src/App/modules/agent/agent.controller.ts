@@ -5,7 +5,7 @@ import { Wallet } from "../wallet/wallet.model";
 import Transaction from "../transaction/tx.model";
 
 
-// Cash-in: Add money to any user's wallet
+
 export const cashIn = async (req: Request, res: Response) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -17,18 +17,18 @@ export const cashIn = async (req: Request, res: Response) => {
     const wallet = await Wallet.findOne({ userId }).session(session);
     if (!wallet) throw new AppError(404, "User wallet not found");
 
-    // Add money to wallet
+    
     wallet.balance += amount;
     await wallet.save({ session });
 
-    // Record transaction
+   
     await Transaction.create(
       [
         {
           type: "CASH_IN",
           amount,
           fee: 0,
-          commission: 0, // optionally compute agent commission
+          commission: 0, 
           toWallet: wallet._id,
           initiatedBy: agentId,
           status: "COMPLETED",
@@ -49,7 +49,7 @@ export const cashIn = async (req: Request, res: Response) => {
   }
 };
 
-// Cash-out: Withdraw money from any user's wallet
+
 export const cashOut = async (req: Request, res: Response) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -62,18 +62,18 @@ export const cashOut = async (req: Request, res: Response) => {
     if (!wallet) throw new AppError(404, "User wallet not found");
     if (wallet.balance < amount) throw new AppError(400, "Insufficient balance");
 
-    // Deduct money from wallet
+   
     wallet.balance -= amount;
     await wallet.save({ session });
 
-    // Record transaction
+  
     await Transaction.create(
       [
         {
           type: "CASH_OUT",
           amount,
           fee: 0,
-          commission: 0, // optionally compute agent commission
+          commission: 0, 
           fromWallet: wallet._id,
           initiatedBy: agentId,
           status: "COMPLETED",
