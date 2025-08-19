@@ -94,7 +94,7 @@ export const cashOut = async (req: Request, res: Response) => {
   }
 };
 
-// Optional: View agent's commission transactions
+
 export const getCommissionHistory = async (req: Request, res: Response) => {
   try {
     const { agentId } = req.params;

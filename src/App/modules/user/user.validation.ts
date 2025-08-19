@@ -1,8 +1,6 @@
 import z from "zod";
 import { Role } from "./user.interface";
 
-// Convert enum values to a tuple of strings
-
 
 export const UserZodSchema = z.object({
   name: z.string()

@@ -7,7 +7,7 @@ import { Wallet } from "./wallet.model";
 import AppError from "../../errorHelpers/AppError";
 import { envVars } from "../../config/env";
 
-// Add Money (Top-up)
+
 export const addMoney = async (req: Request, res: Response) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -49,7 +49,7 @@ export const addMoney = async (req: Request, res: Response) => {
   }
 };
 
-// Withdraw Money
+
 export const withdrawMoney = async (req: Request, res: Response) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -95,7 +95,7 @@ export const withdrawMoney = async (req: Request, res: Response) => {
   }
 };
 
-// Send Money to another user
+
 export const sendMoney = async (req: Request, res: Response) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -114,15 +114,15 @@ export const sendMoney = async (req: Request, res: Response) => {
     const transactionFee = Number(envVars.TRANSACTION_FEE);
     const newFee = (transactionFee / 100) * amount;
 
-    // Deduct from sender
+  
     senderWallet.balance -= (amount + newFee);
     await senderWallet.save({ session });
 
-    // Add to receiver
+
     receiverWallet.balance += amount;
     await receiverWallet.save({ session });
 
-    // Transactions
+ 
     await Transaction.create(
       [
         {

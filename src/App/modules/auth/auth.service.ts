@@ -16,7 +16,7 @@ const credentialLogin = async (payload: Partial<IUser>) => {
     throw new AppError(400, "Email does not exist");
   }
 
-  const comparedPass = await bcryptjs.compare(password, existUser.password);
+  const comparedPass = await bcryptjs.compare(password, existUser.password as string);
   if (!comparedPass) {
     throw new AppError(400, "Incorrect password!");
   }

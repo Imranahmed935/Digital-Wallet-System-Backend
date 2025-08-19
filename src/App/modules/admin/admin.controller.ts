@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
 import { User } from "../user/user.model";
-import { Agent } from "../agent/agent.model";
 import { Wallet } from "../wallet/wallet.model";
 import Transaction from "../transaction/tx.model";
 import AppError from "../../errorHelpers/AppError";
