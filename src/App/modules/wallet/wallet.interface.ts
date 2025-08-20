@@ -5,5 +5,5 @@ export interface IWallet {
   userId?: Types.ObjectId;   
   agentId?: Types.ObjectId;  
   balance: number;
-  isBlocked: boolean;
+  isBlocked?: boolean;
 }

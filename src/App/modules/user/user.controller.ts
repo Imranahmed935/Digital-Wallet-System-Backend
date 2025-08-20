@@ -6,7 +6,7 @@ import { Role } from "./user.interface";
 import { User } from "./user.model";
 import { Wallet } from "../wallet/wallet.model";
 import Transaction from "../transaction/tx.model";
-
+import { IWallet } from "../wallet/wallet.interface";
 
 const createUser = async (req: Request, res: Response) => {
   const session = await mongoose.startSession();
@@ -16,28 +16,35 @@ const createUser = async (req: Request, res: Response) => {
     const { name, email, password, role } = req.body;
 
     const normalizedRole = role?.toUpperCase();
-    if (normalizedRole ===Role.ADMIN)
+    if (normalizedRole === Role.ADMIN) {
       throw new AppError(403, "Admin registration not allowed!");
+    }
 
-   
     const existUser = await User.findOne({ email });
     if (existUser) throw new AppError(400, "User already exists!");
 
     const hashedPass = await bcryptjs.hash(password, 10);
 
-    const newUser = await User.create(
+    const newUserArray = await User.create(
       [{ name, email, password: hashedPass, role: normalizedRole }],
       { session }
     );
 
-    const walletPayload: any = { balance: 50 }; 
+    const newUser = newUserArray[0].toObject();
 
-    if (normalizedRole === Role.USER) walletPayload.userId = newUser[0]._id;
-    else if (normalizedRole === Role.AGENT) walletPayload.agentId = newUser[0]._id;
+    // Wallet payload
+    let walletPayload: IWallet;
+
+    if (normalizedRole === Role.USER) {
+      walletPayload = { userId: newUser._id, balance: 50 };
+    } else if (normalizedRole === Role.AGENT) {
+      walletPayload = { agentId: newUser._id, balance: 50 };
+    } else {
+      throw new AppError(400, "Invalid role");
+    }
 
     const newWallet = await Wallet.create([walletPayload], { session });
 
-   
     await Transaction.create(
       [
         {
@@ -46,7 +53,7 @@ const createUser = async (req: Request, res: Response) => {
           fee: 0,
           commission: 0,
           toWallet: newWallet[0]._id,
-          initiatedBy: newUser[0]._id,
+          initiatedBy: newUser._id,
           status: "COMPLETED",
           meta: {
             description: "Signup bonus credited automatically",
@@ -60,21 +67,26 @@ const createUser = async (req: Request, res: Response) => {
     await session.commitTransaction();
     session.endSession();
 
+    
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password: _password, ...userWithoutPassword } = newUser;
+
     res.status(201).json({
       success: true,
       message: `${normalizedRole} registered successfully with wallet!`,
       data: {
-        user: newUser[0],
+        user: userWithoutPassword,
         wallet: newWallet[0],
       },
     });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     await session.abortTransaction();
     session.endSession();
     res.status(500).json({
       success: false,
       message: "Failed to create user/agent & wallet",
-      error: error.message,
+      error: error.message || error,
     });
   }
 };

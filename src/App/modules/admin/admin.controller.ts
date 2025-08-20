@@ -13,8 +13,8 @@ export const getAllUsers = async (req: Request, res: Response) => {
   try {
     const users = await User.find({role:"USER"});
     res.status(200).json({ success: true, users });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: "Failed to fetch users", error: error.message });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Failed to fetch users", error});
   }
 };
 
@@ -25,11 +25,11 @@ export const getAllAgents = async (req: Request, res: Response) => {
     const agents = await User.find({role:"AGENT"});
 
     res.status(200).json({ success: true, agents: agents });
-  } catch (error: any) {
+  } catch (error) {
     res.status(500).json({
       success: false,
       message: "Failed to fetch agents",
-      error: error.message,
+      error,
     });
   }
 };
@@ -40,8 +40,8 @@ export const getAllWallets = async (req: Request, res: Response) => {
   try {
     const wallets = await Wallet.find();
     res.status(200).json({ success: true, wallets });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: "Failed to fetch wallets", error: error.message });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Failed to fetch wallets", error });
   }
 };
 
@@ -50,8 +50,8 @@ export const getAllTransactions = async (req: Request, res: Response) => {
   try {
     const transactions = await Transaction.find()
     res.status(200).json({ success: true, transactions });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: "Failed to fetch transactions", error: error.message });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Failed to fetch transactions", error });
   }
 };
 
@@ -66,8 +66,8 @@ export const blockWallet = async (req: Request, res: Response) => {
     await wallet.save();
 
     res.status(200).json({ success: true, message: `Wallet ${block ? "blocked" : "unblocked"}`, wallet });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: "Failed to update wallet status", error: error.message });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Failed to update wallet status", error});
   }
 };
 
@@ -87,11 +87,11 @@ export const updateAgentStatus = async (req: Request, res: Response) => {
       message: `Agent is now ${agent.isActive ? "approved" : "suspended"}`, 
       agent 
     });
-  } catch (error: any) {
+  } catch (error) {
     res.status(500).json({ 
       success: false, 
       message: "Failed to update agent status", 
-      error: error.message 
+      error
     });
   }
 };

@@ -42,10 +42,10 @@ export const addMoney = async (req: Request, res: Response) => {
     session.endSession();
 
     res.status(200).json({ success: true, message: "Money added successfully", wallet });
-  } catch (error: any) {
+  } catch (error) {
     await session.abortTransaction();
     session.endSession();
-    res.status(500).json({ success: false, message: "Add money failed", error: error.message });
+    res.status(500).json({ success: false, message: "Add money failed", error });
   }
 };
 
@@ -88,10 +88,10 @@ export const withdrawMoney = async (req: Request, res: Response) => {
     session.endSession();
 
     res.status(200).json({ success: true, message: "Money withdrawn successfully", wallet });
-  } catch (error: any) {
+  } catch (error) {
     await session.abortTransaction();
     session.endSession();
-    res.status(500).json({ success: false, message: "Withdraw failed", error: error.message });
+    res.status(500).json({ success: false, message: "Withdraw failed", error});
   }
 };
 
@@ -155,10 +155,10 @@ export const sendMoney = async (req: Request, res: Response) => {
     session.endSession();
 
     res.status(200).json({ success: true, message: "Money sent successfully", senderWallet, receiverWallet });
-  } catch (error: any) {
+  } catch (error) {
     await session.abortTransaction();
     session.endSession();
-    res.status(500).json({ success: false, message: "Send money failed", error: error.message });
+    res.status(500).json({ success: false, message: "Send money failed", error });
   }
 };
 
@@ -175,7 +175,7 @@ export const getTransactionHistory = async (req: Request, res: Response) => {
     }).sort({ createdAt: -1 });
 
     res.status(200).json({ success: true, transactions });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: "Failed to fetch transactions", error: error.message });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Failed to fetch transactions", error});
   }
 };

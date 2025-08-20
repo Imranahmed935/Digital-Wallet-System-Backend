@@ -42,10 +42,10 @@ export const cashIn = async (req: Request, res: Response) => {
     session.endSession();
 
     res.status(200).json({ success: true, message: "Cash-in successful", wallet });
-  } catch (error: any) {
+  } catch (error) {
     await session.abortTransaction();
     session.endSession();
-    res.status(500).json({ success: false, message: "Cash-in failed", error: error.message });
+    res.status(500).json({ success: false, message: "Cash-in failed", error});
   }
 };
 
@@ -87,10 +87,10 @@ export const cashOut = async (req: Request, res: Response) => {
     session.endSession();
 
     res.status(200).json({ success: true, message: "Cash-out successful", wallet });
-  } catch (error: any) {
+  } catch (error) {
     await session.abortTransaction();
     session.endSession();
-    res.status(500).json({ success: false, message: "Cash-out failed", error: error.message });
+    res.status(500).json({ success: false, message: "Cash-out failed", error });
   }
 };
 
@@ -103,7 +103,7 @@ export const getCommissionHistory = async (req: Request, res: Response) => {
       .sort({ createdAt: -1 });
 
     res.status(200).json({ success: true, transactions });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: "Failed to fetch commission history", error: error.message });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Failed to fetch commission history", error});
   }
 };

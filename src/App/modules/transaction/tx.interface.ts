@@ -12,5 +12,5 @@ export interface ITransaction {
   toWallet?: Types.ObjectId;
   initiatedBy: Types.ObjectId;
   status: TxStatus;
-  meta?: Record<string, any>;
+  meta?: Record<string, unknown>;
 }
