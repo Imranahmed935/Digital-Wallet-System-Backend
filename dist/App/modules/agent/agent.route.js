@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.agentRouter = void 0;
+const express_1 = require("express");
+const agent_controller_1 = require("./agent.controller");
+const checkAuth_1 = require("../../midleware/checkAuth");
+const user_interface_1 = require("../user/user.interface");
+const router = (0, express_1.Router)();
+router.post("/cash-in", (0, checkAuth_1.checkAuth)(user_interface_1.Role.AGENT), agent_controller_1.cashIn);
+router.post("/cash-out", (0, checkAuth_1.checkAuth)(user_interface_1.Role.AGENT), agent_controller_1.cashOut);
+router.get("/commission/:agentId", (0, checkAuth_1.checkAuth)(user_interface_1.Role.AGENT), agent_controller_1.getCommissionHistory);
+exports.agentRouter = router;

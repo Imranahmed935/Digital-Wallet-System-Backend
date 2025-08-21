@@ -5,9 +5,6 @@ import Transaction from "../transaction/tx.model";
 import AppError from "../../errorHelpers/AppError";
 
 
-
-
-
 // View all users
 export const getAllUsers = async (req: Request, res: Response) => {
   try {

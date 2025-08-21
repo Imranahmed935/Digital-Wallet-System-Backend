@@ -1,7 +1,5 @@
 import { Request, Response } from "express";
 import mongoose from "mongoose";
-
-
 import Transaction from "../transaction/tx.model";
 import { Wallet } from "./wallet.model";
 import AppError from "../../errorHelpers/AppError";
