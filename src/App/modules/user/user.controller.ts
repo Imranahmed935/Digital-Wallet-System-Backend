@@ -7,13 +7,15 @@ import { User } from "./user.model";
 import { Wallet } from "../wallet/wallet.model";
 import Transaction from "../transaction/tx.model";
 import { IWallet } from "../wallet/wallet.interface";
+import { sendResponse } from "../../utils/sendResponse";
+
 
 const createUser = async (req: Request, res: Response) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, phone, role } = req.body;
 
     const normalizedRole = role?.toUpperCase();
     if (normalizedRole === Role.ADMIN) {
@@ -26,7 +28,7 @@ const createUser = async (req: Request, res: Response) => {
     const hashedPass = await bcryptjs.hash(password, 10);
 
     const newUserArray = await User.create(
-      [{ name, email, password: hashedPass, role: normalizedRole }],
+      [{ name, email, phone, password: hashedPass, role: normalizedRole }],
       { session }
     );
 
@@ -67,7 +69,6 @@ const createUser = async (req: Request, res: Response) => {
     await session.commitTransaction();
     session.endSession();
 
-    
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: _password, ...userWithoutPassword } = newUser;
 
@@ -79,7 +80,7 @@ const createUser = async (req: Request, res: Response) => {
         wallet: newWallet[0],
       },
     });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     await session.abortTransaction();
     session.endSession();
@@ -90,5 +91,26 @@ const createUser = async (req: Request, res: Response) => {
     });
   }
 };
+export const getMe = async (req: Request, res: Response) => {
+  try {
+    const email = req.user.email;
+    if (!email) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+    const user = await User.findOne({email}).select("-password");
 
-export const userControllers = { createUser };
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    sendResponse(res, {
+      success: true,
+      statusCode: 200,
+      message: "User retrieved successfully",
+      data: user,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+export const userControllers = { createUser, getMe };

@@ -14,11 +14,12 @@ export interface EnvConfig {
   SUPER_ADMIN_PASS:string;
   BCRYPT_SALT_ROUND:string;
   ADMIN_PHONE_NUMBER:string;
-  TRANSACTION_FEE:string
+  TRANSACTION_FEE:string,
+  FRONTEND_URL:string
 }
 
 const loadEnv = (): EnvConfig => {
-  const requiredEnv: string[] = ["PORT", "DB_URL", "JWT_SECRET","TRANSACTION_FEE", "JWT_EXPIRED","JWT_REFRESH_SECRET", "JWT_REFRESH_EXPIRES","SUPER_ADMIN_PASS", "SUPER_ADMIN_EMAIL","BCRYPT_SALT_ROUND","ADMIN_PHONE_NUMBER"];
+  const requiredEnv: string[] = ["PORT","FRONTEND_URL" ,"DB_URL", "JWT_SECRET","TRANSACTION_FEE", "JWT_EXPIRED","JWT_REFRESH_SECRET", "JWT_REFRESH_EXPIRES","SUPER_ADMIN_PASS", "SUPER_ADMIN_EMAIL","BCRYPT_SALT_ROUND","ADMIN_PHONE_NUMBER"];
   requiredEnv.forEach((key) => {
     if (!process.env[key]) {
       throw new Error(`Missing require environment variable ${key}`);
@@ -37,6 +38,7 @@ const loadEnv = (): EnvConfig => {
     BCRYPT_SALT_ROUND:process.env.BCRYPT_SALT_ROUND!,
     ADMIN_PHONE_NUMBER:process.env.ADMIN_PHONE_NUMBER!,
     TRANSACTION_FEE:process.env.TRANSACTION_FEE!,
+    FRONTEND_URL:process.env.FRONTEND_URL!,
   };
 };
 

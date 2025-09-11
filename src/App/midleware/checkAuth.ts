@@ -8,7 +8,7 @@ export const checkAuth =
   (...authRoles: string[]) =>
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const authHeader = req.headers.authorization;
+      const authHeader = req.headers.authorization || req.cookies.accessToken;
       if (!authHeader) {
         throw new AppError(403, "No token provided");
       }
