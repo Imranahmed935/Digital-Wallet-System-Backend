@@ -4,6 +4,8 @@ import Transaction from "../transaction/tx.model";
 import { Wallet } from "./wallet.model";
 import AppError from "../../errorHelpers/AppError";
 import { envVars } from "../../config/env";
+import { User } from "../user/user.model";
+import { sendResponse } from "../../utils/sendResponse";
 
 
 export const addMoney = async (req: Request, res: Response) => {
@@ -11,15 +13,20 @@ export const addMoney = async (req: Request, res: Response) => {
   session.startTransaction();
 
   try {
-    const { userId, amount } = req.body;
+    const { phone, amount } = req.body;
+
+    if (!phone) throw new AppError(400, "User phone number is required");
     if (amount <= 0) throw new AppError(400, "Amount must be greater than 0");
 
-    const wallet = await Wallet.findOne({ userId }).session(session);
-    if (!wallet) throw new AppError(404, "Wallet not found");
+   
+    const user = await User.findOne({ phone }).session(session);
+    if (!user) throw new AppError(404, "User not found");
 
+  
+    const wallet = await Wallet.findOne({ userId: user._id }).session(session);
+    if (!wallet) throw new AppError(404, "Wallet not found");
     wallet.balance += amount;
     await wallet.save({ session });
-
     await Transaction.create(
       [
         {
@@ -28,9 +35,9 @@ export const addMoney = async (req: Request, res: Response) => {
           fee: 0,
           commission: 0,
           toWallet: wallet._id,
-          initiatedBy: userId,
+          initiatedBy: user._id,
           status: "COMPLETED",
-          meta: { description: "Top-up added" },
+          meta: { description: "Top-up added via phone number" },
         },
       ],
       { session }
@@ -177,3 +184,35 @@ export const getTransactionHistory = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, message: "Failed to fetch transactions", error});
   }
 };
+
+export const getWallet = async (req: Request, res: Response) => {
+  try {
+    const userId = req?.user?.userId; // get logged-in user ID
+    console.log("Logged-in user:", userId);
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    // find wallet for this user
+    const wallet = await Wallet.findOne({ userId });
+
+    if (!wallet) {
+      return res.status(404).json({ success: false, message: "Wallet not found" });
+    }
+
+    sendResponse(res, {
+      success: true,
+      statusCode: 200,
+      message: "Wallet retrieved successfully",
+      data: wallet,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ success: false, message: "Failed to retrieve wallet" });
+  }
+};
+
+
+
+
