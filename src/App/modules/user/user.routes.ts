@@ -16,4 +16,6 @@ router.post(
 
 router.get("/me", checkAuth(...Object.values(Role)), userControllers.getMe)
 
+router.patch("/profile",checkAuth(...Object.values(Role)), userControllers.updateUserProfile)
+
 export const userRouter = router;

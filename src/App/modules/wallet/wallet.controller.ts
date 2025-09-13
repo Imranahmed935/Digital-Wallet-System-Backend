@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Request, Response } from "express";
 import mongoose from "mongoose";
 import Transaction from "../transaction/tx.model";
@@ -6,6 +7,8 @@ import AppError from "../../errorHelpers/AppError";
 import { envVars } from "../../config/env";
 import { User } from "../user/user.model";
 import { sendResponse } from "../../utils/sendResponse";
+import { IPaginatedResponse, ITransaction } from "../transaction/tx.interface";
+
 
 
 export const addMoney = async (req: Request, res: Response) => {
@@ -60,30 +63,42 @@ export const withdrawMoney = async (req: Request, res: Response) => {
   session.startTransaction();
 
   try {
-    const { userId, amount } = req.body;
-    if (amount <= 0) throw new AppError(400, "Amount must be greater than 0");
+    const { phone, amount } = req.body;
 
-    const wallet = await Wallet.findOne({ userId }).session(session);
+    if (!phone) throw new AppError(400, "User phone number is required");
+    if (!amount || amount <= 0) throw new AppError(400, "Amount must be greater than 0");
+
+   
+    const user = await User.findOne({ phone }).session(session);
+    if (!user) throw new AppError(404, "User not found");
+
+   
+    const wallet = await Wallet.findOne({ userId: user._id }).session(session);
     if (!wallet) throw new AppError(404, "Wallet not found");
-    if (wallet.balance < amount) throw new AppError(400, "Insufficient balance");
- 
-    const transactionFee = Number(envVars.TRANSACTION_FEE);
-    const newFee = (transactionFee / 100) * amount;
 
-    wallet.balance -= (amount + newFee);
+    
+    const transactionFee = Number(envVars.TRANSACTION_FEE) || 0;
+    const feeAmount = (transactionFee / 100) * amount;
+    const totalDeduction = amount + feeAmount;
+
+    if (wallet.balance < totalDeduction) throw new AppError(400, "Insufficient balance");
+
+   
+    wallet.balance -= totalDeduction;
     await wallet.save({ session });
 
+    
     await Transaction.create(
       [
         {
           type: "WITHDRAW",
           amount,
-          fee: newFee,
+          fee: feeAmount,
           commission: 0,
           fromWallet: wallet._id,
-          initiatedBy: userId,
+          initiatedBy: user._id,
           status: "COMPLETED",
-          meta: { description: "Money withdrawn" },
+          meta: { description: `Money withdrawn by ${phone}` },
         },
       ],
       { session }
@@ -92,42 +107,68 @@ export const withdrawMoney = async (req: Request, res: Response) => {
     await session.commitTransaction();
     session.endSession();
 
-    res.status(200).json({ success: true, message: "Money withdrawn successfully", wallet });
-  } catch (error) {
+    res.status(200).json({
+      success: true,
+      message: "Money withdrawn successfully",
+      wallet,
+    });
+  } catch (error: any) {
     await session.abortTransaction();
     session.endSession();
-    res.status(500).json({ success: false, message: "Withdraw failed", error});
+    res.status(500).json({
+      success: false,
+      message: error.message || "Withdraw failed",
+      error,
+    });
   }
 };
-
 
 export const sendMoney = async (req: Request, res: Response) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-    const { senderId, receiverId, amount } = req.body;
-    if (amount <= 0) throw new AppError(400, "Amount must be greater than 0");
-    if (senderId === receiverId) throw new AppError(400, "Cannot send money to self");
+    const { receiverPhone, amount } = req.body;
+    const senderId = req.user?.userId;
 
-    const senderWallet = await Wallet.findOne({ userId: senderId }).session(session);
-    const receiverWallet = await Wallet.findOne({ userId: receiverId }).session(session);
+    if (!receiverPhone) throw new AppError(400, "Receiver phone number is required");
+    if (!amount || amount <= 0) throw new AppError(400, "Amount must be greater than 0");
 
-    if (!senderWallet || !receiverWallet) throw new AppError(404, "Wallet not found");
-    if (senderWallet.balance < amount) throw new AppError(400, "Insufficient balance");
-
-    const transactionFee = Number(envVars.TRANSACTION_FEE);
-    const newFee = (transactionFee / 100) * amount;
+    
+    const sender = await User.findById(senderId).session(session);
+    if (!sender) throw new AppError(404, "Sender not found");
 
   
-    senderWallet.balance -= (amount + newFee);
+    const receiver = await User.findOne({ phone: receiverPhone }).session(session);
+    if (!receiver) throw new AppError(404, "Receiver not found");
+
+   
+    if (String(sender._id) === String(receiver._id)) {
+      throw new AppError(400, "Cannot send money to self");
+    }
+
+ 
+    const senderWallet = await Wallet.findOne({ userId: sender._id }).session(session);
+    const receiverWallet = await Wallet.findOne({ userId: receiver._id }).session(session);
+
+    if (!senderWallet || !receiverWallet) throw new AppError(404, "Wallet not found");
+
+ 
+    const transactionFee = Number(envVars.TRANSACTION_FEE) || 0;
+    const newFee = (transactionFee / 100) * amount;
+    const totalDeduction = amount + newFee;
+
+    if (senderWallet.balance < totalDeduction) throw new AppError(400, "Insufficient balance");
+
+    
+    senderWallet.balance -= totalDeduction;
     await senderWallet.save({ session });
 
-
+    
     receiverWallet.balance += amount;
     await receiverWallet.save({ session });
 
- 
+
     await Transaction.create(
       [
         {
@@ -137,9 +178,9 @@ export const sendMoney = async (req: Request, res: Response) => {
           commission: 0,
           fromWallet: senderWallet._id,
           toWallet: receiverWallet._id,
-          initiatedBy: senderId,
+          initiatedBy: sender._id,
           status: "COMPLETED",
-          meta: { description: "Money sent to another user" },
+          meta: { description: `Money sent to ${receiver.phone}` },
         },
         {
           type: "CASH_IN",
@@ -148,53 +189,95 @@ export const sendMoney = async (req: Request, res: Response) => {
           commission: 0,
           fromWallet: senderWallet._id,
           toWallet: receiverWallet._id,
-          initiatedBy: receiverId,
+          initiatedBy: receiver._id,
           status: "COMPLETED",
-          meta: { description: "Money received from another user" },
+          meta: { description: `Money received from ${sender.phone}` },
         },
       ],
-      { session, ordered:true }
+      { session, ordered: true }
     );
 
     await session.commitTransaction();
     session.endSession();
 
-    res.status(200).json({ success: true, message: "Money sent successfully", senderWallet, receiverWallet });
-  } catch (error) {
+    res.status(200).json({
+      success: true,
+      message: `Money sent successfully to ${receiver.phone}`,
+      senderWallet,
+      receiverWallet,
+    });
+  } catch (error: any) {
     await session.abortTransaction();
     session.endSession();
-    res.status(500).json({ success: false, message: "Send money failed", error });
+    res.status(500).json({
+      success: false,
+      message: error.message || "Send money failed",
+      error,
+    });
   }
 };
 
-// View Transaction History
+
 export const getTransactionHistory = async (req: Request, res: Response) => {
   try {
-    const { userId } = req.params;
+    const userId = (req.user as { userId: string }).userId;
+
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
 
     const wallet = await Wallet.findOne({ userId });
     if (!wallet) throw new AppError(404, "Wallet not found");
 
     const transactions = await Transaction.find({
       $or: [{ fromWallet: wallet._id }, { toWallet: wallet._id }],
-    }).sort({ createdAt: -1 });
+    })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
-    res.status(200).json({ success: true, transactions });
+   
+    const total = await Transaction.countDocuments({
+      $or: [{ fromWallet: wallet._id }, { toWallet: wallet._id }],
+    });
+
+
+    const response: IPaginatedResponse<ITransaction[]> = {
+      statusCode: 200,
+      success: true,
+      message: "Transactions retrieved successfully",
+      data: transactions,
+      meta: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit),
+      },
+    };
+
+     sendResponse(res, response);
   } catch (error) {
-    res.status(500).json({ success: false, message: "Failed to fetch transactions", error});
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch transactions",
+      error,
+    });
   }
 };
 
+
+
+
 export const getWallet = async (req: Request, res: Response) => {
   try {
-    const userId = req?.user?.userId; // get logged-in user ID
-    console.log("Logged-in user:", userId);
-
+    const userId = req?.user?.userId; 
+    
     if (!userId) {
       return res.status(401).json({ success: false, message: "Unauthorized" });
     }
 
-    // find wallet for this user
+    
     const wallet = await Wallet.findOne({ userId });
 
     if (!wallet) {

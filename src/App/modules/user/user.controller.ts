@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Request, Response } from "express";
 import mongoose from "mongoose";
 import bcryptjs from "bcryptjs";
@@ -113,4 +114,32 @@ export const getMe = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
-export const userControllers = { createUser, getMe };
+
+export const updateUserProfile = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId; 
+
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const { name, email, phone } = req.body;
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { name, email, phone },
+      { new: true, runValidators: true }
+    );
+
+    if (!user) throw new AppError(404, "User not found");
+
+    res.status(200).json({
+      success: true,
+      message: "Profile updated successfully",
+      data: user,
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
+export const userControllers = { createUser, getMe, updateUserProfile };
