@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Request, Response } from "express";
 import { User } from "../user/user.model";
@@ -55,16 +56,93 @@ export const getAllWallets = async (req: Request, res: Response) => {
 };
 
 // View all transactions
+// export const getAllTransactions = async (req: Request, res: Response) => {
+//   try {
+//     const transactions = await Transaction.find();
+//     sendResponse(res, {
+//       success: true,
+//       statusCode: 200,
+//       message: "All Transactions retrieved successfully",
+//       data: transactions,
+//     });
+//   } catch (error) {
+//     res
+//       .status(500)
+//       .json({ success: false, message: "Failed to fetch transactions", error });
+//   }
+// };
+
+
+
 export const getAllTransactions = async (req: Request, res: Response) => {
   try {
-    const transactions = await Transaction.find();
-    res.status(200).json({ success: true, transactions });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ success: false, message: "Failed to fetch transactions", error });
+    const {
+      page = 1,
+      limit = 10,
+      status,
+      category,
+      minAmount,
+      maxAmount,
+      search,
+    } = req.query;
+
+    const query: any = {};
+
+    if (status && String(status).trim() !== "") {
+      query.status = (status as string).toUpperCase();
+    }
+    if (category && String(category).trim() !== "") {
+      query.type = (category as string).toUpperCase();
+    }
+    if (minAmount && !isNaN(Number(minAmount))) {
+      query.amount = { ...query.amount, $gte: Number(minAmount) };
+    }
+    if (maxAmount && !isNaN(Number(maxAmount))) {
+      query.amount = { ...query.amount, $lte: Number(maxAmount) };
+    }
+    if (search && String(search).trim() !== "") {
+      query.$or = [
+        { type: { $regex: search as string, $options: "i" } },
+        { status: { $regex: search as string, $options: "i" } },
+      ];
+    }
+
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const transactions = await Transaction.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(Number(limit));
+
+    const total = await Transaction.countDocuments(query);
+
+    const meta = {
+      total,
+      page: Number(page),
+      limit: Number(limit),
+      pages: Math.ceil(total / Number(limit)),
+    };
+
+    sendResponse(res, {
+      success: true,
+      statusCode: 200,
+      message: "Transactions retrieved successfully",
+      data: transactions,
+      meta,
+    });
+  } catch (error: any) {
+    sendResponse(res, {
+      success: false,
+      statusCode: 500,
+      message: "Failed to fetch transactions",
+      data: [],
+    });
   }
 };
+
+
+
+
 
 export const blockWallet = async (req: Request, res: Response) => {
   try {
