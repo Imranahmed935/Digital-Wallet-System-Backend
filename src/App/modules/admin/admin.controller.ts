@@ -27,7 +27,12 @@ export const getAllAgents = async (req: Request, res: Response) => {
   try {
     const agents = await User.find({ role: "AGENT" });
 
-    res.status(200).json({ success: true, agents: agents });
+    sendResponse(res, {
+      success: true,
+      statusCode: 200,
+      message: "Users retrieved successfully",
+      data: agents,
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -88,32 +93,7 @@ export const blockWallet = async (req: Request, res: Response) => {
   }
 };
 
-export const updateAgentStatus = async (req: Request, res: Response) => {
-  try {
-    const { agentId, isActive } = req.body;
-    console.log(agentId);
-    const agent = await User.findById(agentId);
-    if (!agent) throw new AppError(404, "Agent not found");
-
-    agent.isActive = isActive;
-    await agent.save();
-
-    res.status(200).json({
-      success: true,
-      message: `Agent is now ${agent.isActive ? "approved" : "suspended"}`,
-      agent,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to update agent status",
-      error,
-    });
-  }
-};
-
 // Block user
-
 export const toggleUserBlock = async (req: Request, res: Response) => {
   try {
     const userId =req.params.id;
@@ -140,6 +120,32 @@ export const toggleUserBlock = async (req: Request, res: Response) => {
     res.status(error.statusCode || 500).json({
       success: false,
       message: error.message || "Failed to update user status",
+    });
+  }
+};
+
+export const toggleAgentStatus = async (req: Request, res: Response) => {
+  try {
+    const agentId = req?.params?.id; 
+    if (!agentId) {
+      throw new AppError(400, "agentId is required");
+    }
+    const agent = await User.findById(agentId);
+    if (!agent) {
+      throw new AppError(404, "Agent not found");
+    }
+    agent.isActive = !agent.isActive;
+    await agent.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Agent ${agent.isActive ? "approved" : "suspended"} successfully`,
+      agent,
+    });
+  } catch (error: any) {
+    res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || "Failed to update agent status",
     });
   }
 };
