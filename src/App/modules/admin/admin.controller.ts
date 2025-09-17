@@ -56,24 +56,6 @@ export const getAllWallets = async (req: Request, res: Response) => {
 };
 
 // View all transactions
-// export const getAllTransactions = async (req: Request, res: Response) => {
-//   try {
-//     const transactions = await Transaction.find();
-//     sendResponse(res, {
-//       success: true,
-//       statusCode: 200,
-//       message: "All Transactions retrieved successfully",
-//       data: transactions,
-//     });
-//   } catch (error) {
-//     res
-//       .status(500)
-//       .json({ success: false, message: "Failed to fetch transactions", error });
-//   }
-// };
-
-
-
 export const getAllTransactions = async (req: Request, res: Response) => {
   try {
     const {
@@ -100,12 +82,33 @@ export const getAllTransactions = async (req: Request, res: Response) => {
     if (maxAmount && !isNaN(Number(maxAmount))) {
       query.amount = { ...query.amount, $lte: Number(maxAmount) };
     }
-    if (search && String(search).trim() !== "") {
-      query.$or = [
-        { type: { $regex: search as string, $options: "i" } },
-        { status: { $regex: search as string, $options: "i" } },
-      ];
-    }
+    const rawSearch = req.query.search;
+const search1 = Array.isArray(rawSearch) ? rawSearch[0] : rawSearch;
+
+if (search1 && typeof search1 === "string" && search1.trim() !== "") {
+  const searchRegex = new RegExp(search1, "i");
+
+  query.$or = [
+    { type: searchRegex },
+    { status: searchRegex },
+
+    // Amount: include if numeric
+    ...(isNaN(Number(search)) ? [] : [{ amount: Number(search1) }]),
+
+    // CreatedAt: only if it's a valid date
+    ...(isNaN(Date.parse(search1))
+      ? []
+      : [
+          {
+            createdAt: {
+              $gte: new Date(search1),
+              $lte: new Date(new Date(search1).setHours(23, 59, 59, 999)),
+            },
+          },
+        ]),
+  ];
+}
+
 
     const skip = (Number(page) - 1) * Number(limit);
 
@@ -140,10 +143,6 @@ export const getAllTransactions = async (req: Request, res: Response) => {
   }
 };
 
-
-
-
-
 export const blockWallet = async (req: Request, res: Response) => {
   try {
     const { walletId, block } = req.body;
@@ -153,28 +152,24 @@ export const blockWallet = async (req: Request, res: Response) => {
     wallet.isBlocked = block;
     await wallet.save();
 
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: `Wallet ${block ? "blocked" : "unblocked"}`,
-        wallet,
-      });
+    res.status(200).json({
+      success: true,
+      message: `Wallet ${block ? "blocked" : "unblocked"}`,
+      wallet,
+    });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Failed to update wallet status",
-        error,
-      });
+    res.status(500).json({
+      success: false,
+      message: "Failed to update wallet status",
+      error,
+    });
   }
 };
 
 // Block user
 export const toggleUserBlock = async (req: Request, res: Response) => {
   try {
-    const userId =req.params.id;
+    const userId = req.params.id;
 
     if (!userId) {
       throw new AppError(400, "userId is required");
@@ -204,7 +199,7 @@ export const toggleUserBlock = async (req: Request, res: Response) => {
 
 export const toggleAgentStatus = async (req: Request, res: Response) => {
   try {
-    const agentId = req?.params?.id; 
+    const agentId = req?.params?.id;
     if (!agentId) {
       throw new AppError(400, "agentId is required");
     }
@@ -217,7 +212,9 @@ export const toggleAgentStatus = async (req: Request, res: Response) => {
 
     res.status(200).json({
       success: true,
-      message: `Agent ${agent.isActive ? "approved" : "suspended"} successfully`,
+      message: `Agent ${
+        agent.isActive ? "approved" : "suspended"
+      } successfully`,
       agent,
     });
   } catch (error: any) {
@@ -227,5 +224,7 @@ export const toggleAgentStatus = async (req: Request, res: Response) => {
     });
   }
 };
+
+
 
 

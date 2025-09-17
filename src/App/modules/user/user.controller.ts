@@ -98,7 +98,7 @@ export const getMe = async (req: Request, res: Response) => {
     if (!email) {
       return res.status(401).json({ success: false, message: "Unauthorized" });
     }
-    const user = await User.findOne({email}).select("-password");
+    const user = await User.findOne({email});
 
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
