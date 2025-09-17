@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Request, Response } from "express";
 import mongoose from "mongoose";
 import AppError from "../../errorHelpers/AppError";
@@ -208,25 +209,55 @@ export const cashOut = async (req: Request, res: Response) => {
 export const getCommissionHistory = async (req: Request, res: Response) => {
   try {
     const { agentId } = req.params;
+    const { page = 1, limit = 10, search = "", status, type } = req.query;
 
-    const transactions = await Transaction.find({
+    const query: any = {
       initiatedBy: agentId,
       type: { $in: ["CASH_IN", "CASH_OUT"] },
-    }).sort({ createdAt: -1 });
+    };
 
-   sendResponse(res, {
-      statusCode: 200,
+    if (search) {
+      query.$or = [
+        { type: { $regex: search as string, $options: "i" } },
+        { status: { $regex: search as string, $options: "i" } },
+      ];
+    }
+
+    if (status) query.status = status;
+    if (type) query.type = type;
+
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [transactions, total] = await Promise.all([
+      Transaction.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(Number(limit)),
+      Transaction.countDocuments(query), 
+    ]);
+
+  
+    const totalTransactions = await Transaction.countDocuments({ initiatedBy: agentId });
+
+    res.status(200).json({
       success: true,
-      message: "all transaction retrived successful",
-      data: transactions
+      message: "Transactions retrieved successfully",
+      data: transactions,
+      totalTransactions, 
+      pagination: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(total / Number(limit)),
+      },
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Failed to fetch commission history",
-        error,
-      });
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch commission history",
+      error,
+    });
   }
 };
+
+
