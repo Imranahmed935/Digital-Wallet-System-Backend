@@ -28,6 +28,7 @@ const user_model_1 = require("../user/user.model");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const AppError_1 = __importDefault(require("../../errorHelpers/AppError"));
 const userTokens_1 = require("../../utils/userTokens");
+const env_1 = require("../../config/env");
 const credentialLogin = (payload) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, password } = payload;
     if (!email || !password) {
@@ -50,6 +51,16 @@ const credentialLogin = (payload) => __awaiter(void 0, void 0, void 0, function*
         userWithoutPassword,
     };
 });
+const changePassword = (oldPassword, newPassword, decodedToken) => __awaiter(void 0, void 0, void 0, function* () {
+    const user = yield user_model_1.User.findById(decodedToken.userId);
+    const isOldPasswordMatch = yield bcryptjs_1.default.compare(oldPassword, user.password);
+    if (!isOldPasswordMatch) {
+        throw new AppError_1.default(403, "Old Password does not match");
+    }
+    user.password = yield bcryptjs_1.default.hash(newPassword, Number(env_1.envVars.BCRYPT_SALT_ROUND));
+    yield user.save();
+});
 exports.authService = {
     credentialLogin,
+    changePassword
 };

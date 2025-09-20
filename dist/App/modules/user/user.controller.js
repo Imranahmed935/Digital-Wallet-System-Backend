@@ -23,7 +23,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.userControllers = void 0;
+exports.userControllers = exports.updateUserProfile = exports.getMe = void 0;
 const mongoose_1 = __importDefault(require("mongoose"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const AppError_1 = __importDefault(require("../../errorHelpers/AppError"));
@@ -31,11 +31,12 @@ const user_interface_1 = require("./user.interface");
 const user_model_1 = require("./user.model");
 const wallet_model_1 = require("../wallet/wallet.model");
 const tx_model_1 = __importDefault(require("../transaction/tx.model"));
+const sendResponse_1 = require("../../utils/sendResponse");
 const createUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const session = yield mongoose_1.default.startSession();
     session.startTransaction();
     try {
-        const { name, email, password, role } = req.body;
+        const { name, email, password, phone, role } = req.body;
         const normalizedRole = role === null || role === void 0 ? void 0 : role.toUpperCase();
         if (normalizedRole === user_interface_1.Role.ADMIN) {
             throw new AppError_1.default(403, "Admin registration not allowed!");
@@ -44,7 +45,7 @@ const createUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         if (existUser)
             throw new AppError_1.default(400, "User already exists!");
         const hashedPass = yield bcryptjs_1.default.hash(password, 10);
-        const newUserArray = yield user_model_1.User.create([{ name, email, password: hashedPass, role: normalizedRole }], { session });
+        const newUserArray = yield user_model_1.User.create([{ name, email, phone, password: hashedPass, role: normalizedRole }], { session });
         const newUser = newUserArray[0].toObject();
         // Wallet payload
         let walletPayload;
@@ -97,4 +98,48 @@ const createUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         });
     }
 });
-exports.userControllers = { createUser };
+const getMe = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const email = req.user.email;
+        if (!email) {
+            return res.status(401).json({ success: false, message: "Unauthorized" });
+        }
+        const user = yield user_model_1.User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+        (0, sendResponse_1.sendResponse)(res, {
+            success: true,
+            statusCode: 200,
+            message: "User retrieved successfully",
+            data: user,
+        });
+    }
+    catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+});
+exports.getMe = getMe;
+const updateUserProfile = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    try {
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+        if (!userId)
+            return res.status(401).json({ message: "Unauthorized" });
+        const { name, email, phone } = req.body;
+        const user = yield user_model_1.User.findByIdAndUpdate(userId, { name, email, phone }, { new: true, runValidators: true });
+        if (!user)
+            throw new AppError_1.default(404, "User not found");
+        res.status(200).json({
+            success: true,
+            message: "Profile updated successfully",
+            data: user,
+        });
+    }
+    catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+exports.updateUserProfile = updateUserProfile;
+exports.userControllers = { createUser, getMe: exports.getMe, updateUserProfile: exports.updateUserProfile };

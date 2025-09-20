@@ -5,7 +5,7 @@ const mongoose_1 = require("mongoose");
 const user_interface_1 = require("./user.interface");
 const userSchema = new mongoose_1.Schema({
     name: { type: String, required: true },
-    phone: { type: String },
+    phone: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: false },
     role: {

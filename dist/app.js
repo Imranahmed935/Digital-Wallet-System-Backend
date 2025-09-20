@@ -11,9 +11,29 @@ const notFound_1 = __importDefault(require("./App/midleware/notFound"));
 const wallet_routes_1 = require("./App/modules/wallet/wallet.routes");
 const agent_route_1 = require("./App/modules/agent/agent.route");
 const admin_route_1 = require("./App/modules/admin/admin.route");
+const env_1 = require("./App/config/env");
+const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
-app.use((0, cors_1.default)());
+app.use((0, cookie_parser_1.default)());
+app.set("trust proxy", 1);
+app.use(express_1.default.urlencoded({ extended: true }));
+const allowedOrigins = [
+    env_1.envVars.FRONTEND_URL,
+    env_1.envVars.FRONTEND_URL_PROD
+];
+app.use((0, cors_1.default)({
+    origin: function (origin, callback) {
+        if (!origin)
+            return callback(null, true);
+        if (allowedOrigins.indexOf(origin) === -1) {
+            const msg = `The CORS policy for this site does not allow access from the specified Origin.`;
+            return callback(new Error(msg), false);
+        }
+        return callback(null, true);
+    },
+    credentials: true
+}));
 app.use("/api/v1", user_routes_1.userRouter);
 app.use("/api/v1", auth_routes_1.authRouter);
 app.use("/api/v1", wallet_routes_1.walletRouter);

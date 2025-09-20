@@ -7,11 +7,12 @@ const checkAuth_1 = require("../../midleware/checkAuth");
 const user_interface_1 = require("../user/user.interface");
 const router = (0, express_1.Router)();
 // View endpoints
-router.get("/users", (0, checkAuth_1.checkAuth)(user_interface_1.Role.ADMIN), admin_controller_1.getAllUsers);
+router.get("/users", (0, checkAuth_1.checkAuth)(user_interface_1.Role.ADMIN), admin_controller_1.getUsersWithDailyStats);
 router.get("/agents", (0, checkAuth_1.checkAuth)(user_interface_1.Role.ADMIN), admin_controller_1.getAllAgents);
 router.get("/wallets", (0, checkAuth_1.checkAuth)(user_interface_1.Role.ADMIN), admin_controller_1.getAllWallets);
-router.get("/transactions", (0, checkAuth_1.checkAuth)(user_interface_1.Role.ADMIN), admin_controller_1.getAllTransactions);
+router.get("/transactions", (0, checkAuth_1.checkAuth)(user_interface_1.Role.ADMIN), admin_controller_1.getAllTransactionsWithDaily);
+router.post("/block/:id", (0, checkAuth_1.checkAuth)(user_interface_1.Role.ADMIN), admin_controller_1.toggleUserBlock);
 // Admin actions
-router.post("/wallet/block", admin_controller_1.blockWallet);
-router.post("/agent/status", admin_controller_1.updateAgentStatus);
+router.post("/wallet/block", (0, checkAuth_1.checkAuth)(user_interface_1.Role.ADMIN), admin_controller_1.blockWallet);
+router.post("/agent/status/:id", (0, checkAuth_1.checkAuth)(user_interface_1.Role.ADMIN), admin_controller_1.toggleAgentStatus);
 exports.adminRouter = router;

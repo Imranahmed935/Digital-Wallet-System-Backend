@@ -19,7 +19,7 @@ const user_model_1 = require("../modules/user/user.model");
 const jwt_1 = require("../utils/jwt");
 const checkAuth = (...authRoles) => (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const authHeader = req.headers.authorization;
+        const authHeader = req.headers.authorization || req.cookies.accessToken;
         if (!authHeader) {
             throw new AppError_1.default(403, "No token provided");
         }
