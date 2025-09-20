@@ -1,5 +1,5 @@
 import { Router } from "express";
-import {  blockWallet, getAllAgents, getAllTransactions, getAllUsers, getAllWallets, toggleAgentStatus, toggleUserBlock } from "./admin.controller";
+import {  blockWallet, getAllAgents,  getAllTransactionsWithDaily,   getAllWallets, getUsersWithDailyStats, toggleAgentStatus, toggleUserBlock } from "./admin.controller";
 import { checkAuth } from "../../midleware/checkAuth";
 import { Role } from "../user/user.interface";
 
@@ -7,10 +7,10 @@ import { Role } from "../user/user.interface";
 const router = Router();
 
 // View endpoints
-router.get("/users", checkAuth(Role.ADMIN), getAllUsers);
+router.get("/users", checkAuth(Role.ADMIN), getUsersWithDailyStats);
 router.get("/agents", checkAuth(Role.ADMIN), getAllAgents);
 router.get("/wallets", checkAuth(Role.ADMIN), getAllWallets);
-router.get("/transactions", checkAuth(Role.ADMIN), getAllTransactions);
+router.get("/transactions", checkAuth(Role.ADMIN), getAllTransactionsWithDaily);
 router.post("/block/:id", checkAuth(Role.ADMIN), toggleUserBlock);
 
 // Admin actions

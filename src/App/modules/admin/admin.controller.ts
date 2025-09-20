@@ -7,32 +7,88 @@ import Transaction from "../transaction/tx.model";
 import AppError from "../../errorHelpers/AppError";
 import { sendResponse } from "../../utils/sendResponse";
 
-// View all users
-export const getAllUsers = async (req: Request, res: Response) => {
+
+export const getUsersWithDailyStats = async (req: Request, res: Response) => {
   try {
+    const { startDate, endDate } = req.query;
+
     const users = await User.find({ role: "USER" });
-    sendResponse(res, {
+
+    const match: any = { role: "USER" };
+    if (startDate) match.createdAt = { $gte: new Date(startDate as string) };
+    if (endDate)
+      match.createdAt = { ...match.createdAt, $lte: new Date(endDate as string) };
+
+
+    const dailyUsers = await User.aggregate([
+      { $match: match },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+      {
+        $project: {
+          date: "$_id",
+          count: 1,
+          _id: 0,
+        },
+      },
+    ]);
+
+    res.status(200).json({
       success: true,
-      statusCode: 200,
-      message: "Users retrieved successfully",
-      data: users,
+      message: "Users and daily stats retrieved successfully",
+      data: {
+        users,
+        dailyUsers,
+      },
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({ success: false, message: "Failed to fetch users", error });
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch users and daily stats",
+      error,
+    });
   }
 };
 
 export const getAllAgents = async (req: Request, res: Response) => {
   try {
+  
     const agents = await User.find({ role: "AGENT" });
+
+    const dailyAgents = await User.aggregate([
+      { $match: { role: "AGENT" } },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: "%Y-%m-%d", date: "$createdAt" },
+          },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+      {
+        $project: {
+          date: "$_id",
+          count: 1,
+          _id: 0,
+        },
+      },
+    ]);
 
     sendResponse(res, {
       success: true,
       statusCode: 200,
-      message: "Users retrieved successfully",
-      data: agents,
+      message: "Agents retrieved successfully",
+      data: {
+        agents,
+        dailyAgents,
+      },
     });
   } catch (error) {
     res.status(500).json({
@@ -43,7 +99,6 @@ export const getAllAgents = async (req: Request, res: Response) => {
   }
 };
 
-// View all wallets
 export const getAllWallets = async (req: Request, res: Response) => {
   try {
     const wallets = await Wallet.find();
@@ -55,8 +110,7 @@ export const getAllWallets = async (req: Request, res: Response) => {
   }
 };
 
-// View all transactions
-export const getAllTransactions = async (req: Request, res: Response) => {
+export const getAllTransactionsWithDaily = async (req: Request, res: Response) => {
   try {
     const {
       page = 1,
@@ -66,10 +120,13 @@ export const getAllTransactions = async (req: Request, res: Response) => {
       minAmount,
       maxAmount,
       search,
+      startDate,
+      endDate,
     } = req.query;
 
     const query: any = {};
 
+    // Filters
     if (status && String(status).trim() !== "") {
       query.status = (status as string).toUpperCase();
     }
@@ -82,36 +139,37 @@ export const getAllTransactions = async (req: Request, res: Response) => {
     if (maxAmount && !isNaN(Number(maxAmount))) {
       query.amount = { ...query.amount, $lte: Number(maxAmount) };
     }
-    const rawSearch = req.query.search;
-const search1 = Array.isArray(rawSearch) ? rawSearch[0] : rawSearch;
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate as string);
+      if (endDate) query.createdAt.$lte = new Date(endDate as string);
+    }
 
-if (search1 && typeof search1 === "string" && search1.trim() !== "") {
-  const searchRegex = new RegExp(search1, "i");
-
-  query.$or = [
-    { type: searchRegex },
-    { status: searchRegex },
-
-    // Amount: include if numeric
-    ...(isNaN(Number(search)) ? [] : [{ amount: Number(search1) }]),
-
-    // CreatedAt: only if it's a valid date
-    ...(isNaN(Date.parse(search1))
-      ? []
-      : [
-          {
-            createdAt: {
-              $gte: new Date(search1),
-              $lte: new Date(new Date(search1).setHours(23, 59, 59, 999)),
-            },
-          },
-        ]),
-  ];
-}
-
+    // Search
+    const rawSearch = search;
+    const searchStr = Array.isArray(rawSearch) ? rawSearch[0] : rawSearch;
+    if (searchStr && typeof searchStr === "string" && searchStr.trim() !== "") {
+      const regex = new RegExp(searchStr, "i");
+      query.$or = [
+        { type: regex },
+        { status: regex },
+        ...(isNaN(Number(searchStr)) ? [] : [{ amount: Number(searchStr) }]),
+        ...(isNaN(Date.parse(searchStr))
+          ? []
+          : [
+              {
+                createdAt: {
+                  $gte: new Date(searchStr),
+                  $lte: new Date(new Date(searchStr).setHours(23, 59, 59, 999)),
+                },
+              },
+            ]),
+      ];
+    }
 
     const skip = (Number(page) - 1) * Number(limit);
 
+    // Paginated transactions
     const transactions = await Transaction.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -119,26 +177,63 @@ if (search1 && typeof search1 === "string" && search1.trim() !== "") {
 
     const total = await Transaction.countDocuments(query);
 
-    const meta = {
-      total,
-      page: Number(page),
-      limit: Number(limit),
-      pages: Math.ceil(total / Number(limit)),
-    };
+     const meta= {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        pages: Math.ceil(total / Number(limit)),
+      }
+
+    // Daily aggregation
+    const dailyTransactions = await Transaction.aggregate([
+      { $match: query },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$createdAt" },
+            month: { $month: "$createdAt" },
+            day: { $dayOfMonth: "$createdAt" },
+          },
+          count: { $sum: 1 },
+          totalAmount: { $sum: "$amount" },
+        },
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 } },
+      {
+        $project: {
+          _id: 0,
+          date: {
+            $dateFromParts: {
+              year: "$_id.year",
+              month: "$_id.month",
+              day: "$_id.day",
+            },
+          },
+          count: 1,
+          totalAmount: 1,
+        },
+      },
+    ]);
 
     sendResponse(res, {
       success: true,
       statusCode: 200,
       message: "Transactions retrieved successfully",
-      data: transactions,
-      meta,
+      data: {
+        transactions,
+        dailyTransactions,
+      },
+      meta
     });
   } catch (error: any) {
     sendResponse(res, {
       success: false,
       statusCode: 500,
       message: "Failed to fetch transactions",
-      data: [],
+      data: {
+        transactions: [],
+        dailyTransactions: [],
+      },
     });
   }
 };
@@ -166,7 +261,6 @@ export const blockWallet = async (req: Request, res: Response) => {
   }
 };
 
-// Block user
 export const toggleUserBlock = async (req: Request, res: Response) => {
   try {
     const userId = req.params.id;

@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { authService } from "./auth.service";
 import { sendResponse } from "../../utils/sendResponse";
 import { setAuthCookie } from "../../utils/setCookies";
+import { JwtPayload } from "jsonwebtoken";
 
 const credentialLogin = async (req: Request, res: Response) => {
   const loginInfo = await authService.credentialLogin(req.body);
@@ -39,8 +40,25 @@ const logOut =
 ;
 
 
+const changePassword = async (req: Request, res: Response) => {
+
+    const newPassword = req.body.newPassword;
+    const oldPassword = req.body.oldPassword;
+    const decodedToken = req.user
+
+    await authService.changePassword(oldPassword, newPassword, decodedToken as JwtPayload);
+
+    sendResponse(res, {
+        success: true,
+        statusCode: 200,
+        message: "Password Changed Successfully",
+        data: null,
+    })
+}
+
 
 export const authController = {
   credentialLogin,
-  logOut
+  logOut,
+  changePassword
 };

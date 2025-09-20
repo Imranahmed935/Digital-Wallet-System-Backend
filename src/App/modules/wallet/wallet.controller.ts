@@ -7,7 +7,7 @@ import AppError from "../../errorHelpers/AppError";
 import { envVars } from "../../config/env";
 import { User } from "../user/user.model";
 import { sendResponse } from "../../utils/sendResponse";
-import { IPaginatedResponse, ITransaction } from "../transaction/tx.interface";
+// import { IPaginatedResponse, ITransaction } from "../transaction/tx.interface";
 
 
 
@@ -222,28 +222,43 @@ export const getTransactionHistory = async (req: Request, res: Response) => {
   try {
     const userId = (req.user as { userId: string }).userId;
 
+    // Pagination
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
+    // Filters
+    const type = req.query.type as string; // CASH_IN, CASH_OUT
+    const startDate = req.query.startDate as string;
+    const endDate = req.query.endDate as string;
 
     const wallet = await Wallet.findOne({ userId });
     if (!wallet) throw new AppError(404, "Wallet not found");
 
-    const transactions = await Transaction.find({
+    // Build query
+    const query: any = {
       $or: [{ fromWallet: wallet._id }, { toWallet: wallet._id }],
-    })
+    };
+
+    if (type) query.type = type;
+
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate) query.createdAt.$lte = new Date(endDate);
+    }
+
+    // Fetch transactions
+    const transactions = await Transaction.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
 
-   
-    const total = await Transaction.countDocuments({
-      $or: [{ fromWallet: wallet._id }, { toWallet: wallet._id }],
-    });
+    // Total count
+    const total = await Transaction.countDocuments(query);
 
-
-    const response: IPaginatedResponse<ITransaction[]> = {
+    // Response
+    const response = {
       statusCode: 200,
       success: true,
       message: "Transactions retrieved successfully",
@@ -256,7 +271,7 @@ export const getTransactionHistory = async (req: Request, res: Response) => {
       },
     };
 
-     sendResponse(res, response);
+    sendResponse(res, response);
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -265,9 +280,6 @@ export const getTransactionHistory = async (req: Request, res: Response) => {
     });
   }
 };
-
-
-
 
 export const getWallet = async (req: Request, res: Response) => {
   try {
